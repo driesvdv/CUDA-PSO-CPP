@@ -1,11 +1,30 @@
-#include <omp.h>
+#include "cuda/cuda_funcs.cuh"
 
 #ifndef OPTIMIZER_BITS_PSO_PSO_IMPL_HPP
 #define OPTIMIZER_BITS_PSO_PSO_IMPL_HPP
 
 namespace optimization
 {
+    struct globalBest
+    {
+        int *position;
+        double cost;
+    };
 
+    struct personalBest
+    {
+        int *position;
+        double cost;
+    };
+
+    struct Particle
+    {
+        int *position;
+        double *velocity;
+        double cost;
+        personalBest pBest;
+    };
+    
     PSO::PSO(const size_t maxIter,
              const size_t swarmSize,
              double inertia,
@@ -83,7 +102,9 @@ namespace optimization
             }
         }
 
-#pragma omp parallel for
+        Wrapper::wrapper();
+
+
         for (size_t itr = 0; itr < maxIter; ++itr)
         {
             for (size_t i = 0; i < swarmSize; ++i)
@@ -113,8 +134,7 @@ namespace optimization
                         swarm[i].pBest.position[j] = swarm[i].position[j];
                     }
 
-// Update global best.
-#pragma omp critical
+                    // Update global best.
                     if (swarm[i].pBest.cost < gBest.cost)
                     {
                         gBest.cost = swarm[i].pBest.cost;

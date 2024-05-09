@@ -6,5 +6,8 @@
 #include <cstddef>
 
 #include "optimizer_bits/pso/pso.hpp"
+#include "optimizer_bits/pso/cuda/cuda_funcs.cuh"
+
+
 
 #endif

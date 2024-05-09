@@ -1,5 +1,7 @@
 #include "../optimizer.hpp"
 #include <iostream>
+#include <chrono>
+#include "../optimizer_bits/pso/cuda/cuda_funcs.cuh"
 
 using namespace std;
 using namespace optimization;

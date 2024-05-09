@@ -3,6 +3,7 @@
 #define OPTIMIZER_BITS_PSO_PSO_HPP
 
 #include "test_function/pso_test_function.hpp"
+#include "cuda/cuda_funcs.cuh"
 #define INFINITY 100000.0
 
 using namespace optimization::testFunction;
