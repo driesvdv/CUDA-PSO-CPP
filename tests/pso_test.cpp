@@ -32,7 +32,7 @@ int main()
     // Start timer
     auto start = high_resolution_clock::now();
 
-    PSO optimizer(250, 1000, 1.0, 0.99, 1.5, 1.5);
+    PSO optimizer(25, 10, 1.0, 0.99, 1.5, 1.5);
     double cost = optimizer.Optimize(func, iterate);
 
     // Stop timer
