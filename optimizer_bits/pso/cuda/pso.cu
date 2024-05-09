@@ -46,9 +46,20 @@ __global__ void updateParticles(double* position, double* velocity, double* pBes
 
 namespace Wrapper
 {
-    void wrapper()
-    {
-        int threadsPerBlock = 256;
-    
+    void wrapper(
+        int* particlePositions[][vecSpace],
+        double* particleVelocities[][vecSpace],
+        int* pBestPositions[][vecSpace],
+        double particleCosts[],
+        double pBestCosts[],
+        int* gBestPosition,
+        double gBestCost,
+        size_t maxIter,
+        double inertia,
+        double c1,
+        double c2,
+        double inertiaDrop
+    ) {
+        // CUDA kernel invocation and other CUDA operations here...
     }
 }

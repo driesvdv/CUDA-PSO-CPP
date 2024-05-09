@@ -5,26 +5,7 @@
 
 namespace optimization
 {
-    struct globalBest
-    {
-        int *position;
-        double cost;
-    };
 
-    struct personalBest
-    {
-        int *position;
-        double cost;
-    };
-
-    struct Particle
-    {
-        int *position;
-        double *velocity;
-        double cost;
-        personalBest pBest;
-    };
-    
     PSO::PSO(const size_t maxIter,
              const size_t swarmSize,
              double inertia,
@@ -43,7 +24,7 @@ namespace optimization
     double PSO::Optimize(PSOTestFunction function,
                          double *iterate)
     {
-        static const size_t vecSpace = function.getVecSpace();
+        static const size_t vecSpace = 2;//function.getVecSpace();
 
         struct globalBest
         {
@@ -102,9 +83,44 @@ namespace optimization
             }
         }
 
-        Wrapper::wrapper();
+        int *particlePositions[swarmSize][vecSpace];
+        double *particleVelocities[swarmSize][vecSpace];
+        double particleCosts[swarmSize];
+        int *pBestPositions[swarmSize][vecSpace];
+        double pBestCosts[swarmSize];
 
+        // Deconstruct Particle struct members
+        for (size_t i = 0; i < swarmSize; ++i)
+        {
+            for (size_t j = 0; j < vecSpace; ++j)
+            {
+                particlePositions[i][j] = &swarm[i].position[j];
+                particleVelocities[i][j] = &swarm[i].velocity[j];
+                pBestPositions[i][j] = &swarm[i].pBest.position[j];
+            }
+            particleCosts[i] = swarm[i].cost;
+            pBestCosts[i] = swarm[i].pBest.cost;
+        }
 
+        // Deconstruct globalBest struct
+        int *gBestPosition = gBest.position;
+
+        // Pass deconstructed variables to the wrapper function
+        Wrapper::wrapper(
+            particlePositions,
+            particleVelocities,
+            pBestPositions,
+            particleCosts,
+            pBestCosts,
+            gBestPosition,
+            gBest.cost,
+            maxIter,
+            inertia,
+            c1,
+            c2,
+            inertiaDrop);
+
+        // MOVE TO WRAPPER
         for (size_t itr = 0; itr < maxIter; ++itr)
         {
             for (size_t i = 0; i < swarmSize; ++i)
@@ -149,6 +165,7 @@ namespace optimization
 
             inertia *= inertiaDrop;
         }
+        // MOVE TO WRAPPER
 
         for (size_t j = 0; j < vecSpace; j++)
         {
