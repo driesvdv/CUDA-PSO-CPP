@@ -49,5 +49,7 @@ int main()
     }
     cout << "]\n final cost : " << cost;
 
+    cout << endl;
+
     return 0;
 }
