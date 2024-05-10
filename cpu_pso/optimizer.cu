@@ -4,7 +4,7 @@
 #include <string>
 #include <ctime> 
 
-const unsigned int ARR_LEN = 20;
+const unsigned int ARR_LEN = 2;
 
 // Position struct contains x and y coordinates 
 struct Sol_arr {
@@ -47,15 +47,15 @@ struct Particle {
 };
 
 int randInt(int low, int high); 
-int calcValue(Sol_arr p); 
+int calcValue(Sol_arr p, int* prices, int* device_1, int* device_2); 
 int getTeamBestIndex(Particle* particles, int N);
 void updateVelocity(Particle &p, Sol_arr team_best_position, float w, float c_ind, float c_team);
 void updatePosition(Particle &p);
 
 const unsigned int N = 5000; 
 const unsigned int ITERATIONS = 1000; 
-const int SEARCH_MIN = -100; 
-const int SEARCH_MAX = 100; 
+const int SEARCH_MIN = 0; 
+const int SEARCH_MAX = 25; 
 const float w = 0.9f; 
 const float c_ind = 1.0f; 
 const float c_team = 2.0f; 
@@ -66,13 +66,25 @@ int randInt(int min, int max) {
 }
 
 // function to optimize 
-int calcValue(Sol_arr p) {
-    int sum = 500;
-    for (int i = 0; i < ARR_LEN; i++) {
-        // convert p.array[i] to int and add to sum
-        sum += p.array[i] * p.array[i] * p.array[i];
+int calcValue(Sol_arr p, int* prices, int* device_1, int* device_2) {
+    int price = 0;
+    int offset_device_1 = p.array[0];
+    int offset_device_2 = p.array[1];
+    if (offset_device_1 < 0 || offset_device_1 > 19) {
+        return 1000000;
     }
-    return abs(sum);
+    if (offset_device_2 < 0 || offset_device_2 > 19) {
+        return 1000000;
+    }
+    
+    for (int i = 0; i < 5; i++) {
+        price += (prices[offset_device_1 + i] * device_1[i]);
+        price += (prices[offset_device_2 + i] * device_2[i]);
+    }
+
+
+
+    return price;
 }
 
 // Returns the index of the particle with the best position
@@ -101,9 +113,9 @@ void updateVelocity(Particle &p, Sol_arr team_best_position, float w, float c_in
 }
 
 // Updates current position, checks if best position and value need to be updated
-void updatePosition(Particle &p) {
+void updatePosition(Particle &p, int* prices, int* device_1, int* device_2) {
     p.current_position += p.velocity; 
-    int newValue = calcValue(p.current_position); 
+    int newValue = calcValue(p.current_position, prices, device_1, device_2); 
     if (newValue < p.current_value) {
         p.current_value = newValue; 
         p.best_position = p.current_position; 
@@ -121,11 +133,19 @@ int main(void) {
     // Initialize particles 
     Particle* h_particles = new Particle[N]; 
 
+    // Initialize pricing array
+    int prices[24] = {100, 200, 300, 400, 500, 600, 700, 800, 900, 1000,
+                      1100, 1200, 1, 50, 50, 1, 1, 1800, 1900,
+                      2000, 2100, 2200, 2300, 2400};
+
+    int device_1[5] = {1, 1, 2, 3, 4};
+    int device_2[5] = {100, 1, 200, 3, 1};
+
     for (int i = 0; i < N; i++) {
         for (int j = 0; j < ARR_LEN; j++) {
             h_particles[i].current_position.array[j] = randInt(SEARCH_MIN, SEARCH_MAX);
             h_particles[i].best_position.array[j] = h_particles[i].current_position.array[j];
-            h_particles[i].current_value = calcValue(h_particles[i].best_position);
+            h_particles[i].current_value = calcValue(h_particles[i].best_position, prices, device_1, device_2);
             h_particles[i].velocity.array[j] = randInt(SEARCH_MIN, SEARCH_MAX); 
         }
     }
@@ -146,7 +166,7 @@ int main(void) {
             // For each particle calculate velocity 
             updateVelocity(h_particles[i], team_best_position, w, c_ind, c_team);
             // Update position and particle best value + position
-            updatePosition(h_particles[i]); 
+            updatePosition(h_particles[i], prices, device_1, device_2); 
         }
         // Calculate team best 
         team_best_index = getTeamBestIndex(h_particles, N); 
