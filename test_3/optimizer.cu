@@ -12,7 +12,7 @@ Use CUDA functions to calculate block size
 #include <cuda_runtime.h>
 #include <curand_kernel.h>
 
-const unsigned int ARR_LEN = 2;
+const unsigned int ARR_LEN = 20;
 
 // Position struct contains x and y coordinates
 struct Sol_arr
@@ -57,34 +57,31 @@ struct Particle
     Sol_arr best_position;
     Sol_arr current_position;
     Sol_arr velocity;
-    float best_value;
+    int best_value;
 };
 
-const unsigned int N = 5000;
-const unsigned int ITERATIONS = 1000;
-const float SEARCH_MIN = -1000.0f;
-const float SEARCH_MAX = 1000.0f;
+const unsigned int N = 50000;
+const unsigned int ITERATIONS = 10000;
+const int SEARCH_MIN = -1000;
+const int SEARCH_MAX = 1000;
 const float w = 0.9f;
 const float c_ind = 1.0f;
 const float c_team = 2.0f;
 
-// return a random float between low and high
-float randomFloat(float low, float high)
-{
-    float range = high - low;
-    float pct = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
-    return low + pct * range;
-}
-
-int randomInt() {
-    int number = std::rand() % 10001; // rand() % (max - min + 1) + min
-    return number; 
+// return a random int between low and high
+int randInt(int min, int max) {
+    return min + rand() % (max - min + 1);
 }
 
 // function to optimize
-__device__ __host__ float calcValue(Sol_arr p)
+__device__ __host__ int calcValue(Sol_arr p)
 {
-    return pow(p.array[0], 2) + pow(p.array[1], 2);
+    int sum = 500;
+    for (int i = 0; i < ARR_LEN; i++)
+    {
+        sum += p.array[i] * p.array[i] * p.array[i];
+    }
+    return abs(sum);
 }
 
 // Initialize state for random numbers
@@ -95,9 +92,9 @@ __global__ void init_kernel(curandState *state, long seed)
 }
 
 // Returns the index of the particle with the best position
-__global__ void updateTeamBestIndex(Particle *d_particles, float *d_team_best_value, int *d_team_best_index, int N)
+__global__ void updateTeamBestIndex(Particle *d_particles, int *d_team_best_value, int *d_team_best_index, int N)
 {
-    __shared__ float best_value;
+    __shared__ int best_value;
     __shared__ int best_index;
     best_value = d_particles[0].best_value;
     best_index = 0;
@@ -122,7 +119,7 @@ __global__ void updateVelocity(Particle *d_particles, int *d_team_best_index, fl
 {
     int idx = threadIdx.x + blockIdx.x * blockDim.x;
 
-    __shared__ float best[ARR_LEN];
+    __shared__ int best[ARR_LEN];
     for (int i = 0; i < ARR_LEN; i++)
     {
         best[i] = d_particles[*d_team_best_index].best_position.array[i];
@@ -131,11 +128,11 @@ __global__ void updateVelocity(Particle *d_particles, int *d_team_best_index, fl
 
     if (idx < N)
     {
+        float r_ind = curand_uniform(state);
+        float r_team = curand_uniform(state);
         for (int i = 0; i < ARR_LEN; i++)
         {
-            float r_ind = curand_uniform(state);
-            float r_team = curand_uniform(state);
-            d_particles[idx].velocity.array[i] = w * d_particles[idx].velocity.array[i] +
+            d_particles[idx].velocity.array[i] = (int) w * d_particles[idx].velocity.array[i] +
                                                  r_ind * c_ind * (d_particles[idx].best_position.array[i] - d_particles[idx].current_position.array[i]) +
                                                  r_team * c_team * (best[i] - d_particles[idx].current_position.array[i]);
         }
@@ -148,7 +145,7 @@ __global__ void updatePosition(Particle *d_particles, int N)
     if (idx < N)
     {
         d_particles[idx].current_position += d_particles[idx].velocity;
-        float newValue = calcValue(d_particles[idx].current_position);
+        int newValue = calcValue(d_particles[idx].current_position);
         if (newValue < d_particles[idx].best_value)
         {
             d_particles[idx].best_value = newValue;
@@ -177,9 +174,9 @@ int main(void)
     //  Initialize particles on host 
     for (int i = 0; i < N; i++) {
         for (int j = 0; j < ARR_LEN; j++) {
-            h_particles[i].current_position.array[j] = randomInt(); 
+            h_particles[i].current_position.array[j] = randInt(SEARCH_MIN, SEARCH_MAX); 
             h_particles[i].best_position.array[j] = h_particles[i].current_position.array[j];
-            h_particles[i].velocity.array[j] = randomFloat(SEARCH_MIN, SEARCH_MAX);
+            h_particles[i].velocity.array[j] = randInt(SEARCH_MIN, SEARCH_MAX); 
             h_particles[i].best_value = calcValue(h_particles[i].best_position);
         }
     }
@@ -191,11 +188,11 @@ int main(void)
 
     // initialize variables for gpu
     int *d_team_best_index;
-    float *d_team_best_value;
+    int *d_team_best_value;
 
     // Allocate gpu memory
     cudaMalloc((void **)&d_team_best_index, sizeof(int));
-    cudaMalloc((void **)&d_team_best_value, sizeof(float));
+    cudaMalloc((void **)&d_team_best_value, sizeof(int));
 
     // Initialize team best index and value
     updateTeamBestIndex<<<1, 1>>>(d_particles, d_team_best_value, d_team_best_index, N);

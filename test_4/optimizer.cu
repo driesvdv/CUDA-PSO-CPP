@@ -52,10 +52,10 @@ int getTeamBestIndex(Particle* particles, int N);
 void updateVelocity(Particle &p, Sol_arr team_best_position, float w, float c_ind, float c_team);
 void updatePosition(Particle &p);
 
-const unsigned int N = 5000; 
-const unsigned int ITERATIONS = 500; 
-const int SEARCH_MIN = -100; 
-const int SEARCH_MAX = 100; 
+const unsigned int N = 50000; 
+const unsigned int ITERATIONS = 1000; 
+const int SEARCH_MIN = -1000; 
+const int SEARCH_MAX = 1000; 
 const float w = 0.9f; 
 const float c_ind = 1.0f; 
 const float c_team = 2.0f; 
@@ -63,19 +63,18 @@ const float c_team = 2.0f;
 // return a random int between low and high 
 int randInt(int min, int max) {
     return min + rand() % (max - min + 1);
-
 }
 
 // function to optimize 
 int calcValue(Sol_arr p) {
-    int sum = 0;
+    int sum = 500;
     for (int i = 0; i < ARR_LEN; i++) {
         // convert p.array[i] to int and add to sum
 
-        sum += p.array[i] * p.array[i];
+        sum += p.array[i] * p.array[i] * p.array[i];
 
     }
-    return sum;
+    return abs(sum);
 }
 
 // Returns the index of the particle with the best position
@@ -136,7 +135,7 @@ int main(void) {
     // Calculate team best position and team best value 
     int team_best_index = getTeamBestIndex(h_particles, N); 
     Sol_arr team_best_position = h_particles[team_best_index].best_position; 
-    float team_best_value = h_particles[team_best_index].current_value; 
+    int team_best_value = h_particles[team_best_index].current_value; 
     std::cout << "Starting Best: " << std::endl;
     std::cout << "Best Particle: " << team_best_index << std::endl; 
     std::cout << "Best value: " << team_best_value << std::endl; 
