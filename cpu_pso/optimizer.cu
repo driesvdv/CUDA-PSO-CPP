@@ -52,8 +52,8 @@ int getTeamBestIndex(Particle* particles, int N);
 void updateVelocity(Particle &p, Sol_arr team_best_position, float w, float c_ind, float c_team);
 void updatePosition(Particle &p);
 
-const unsigned int N = 10; 
-const unsigned int ITERATIONS = 10000; 
+const unsigned int N = 5000; 
+const unsigned int ITERATIONS = 1000; 
 const int SEARCH_MIN = -100; 
 const int SEARCH_MAX = 100; 
 const float w = 0.9f; 
