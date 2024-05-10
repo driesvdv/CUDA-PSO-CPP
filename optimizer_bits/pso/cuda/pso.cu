@@ -43,7 +43,7 @@ __global__ void updateParticles(int *position, double *velocity, double *pBestPo
     }
 }
 
-__global__ void testKernel(int *particlePositions, double *particleVelocities, int *particleBestPositions, double *particleCosts)
+__global__ void testKernel(int *particlePositions, double *particleVelocities, int *particleBestPositions, double *particleCosts, double *particleBestCosts, int *gBestPosition, double gBestCost, size_t maxIter, double inertia, double c1, double c2, double inertiaDrop)
 {
     int idx = threadIdx.x + blockIdx.x * blockDim.x;
 
@@ -60,6 +60,13 @@ __global__ void testKernel(int *particlePositions, double *particleVelocities, i
     {
         // Set the cost to 0
         particleCosts[idx] = 0.0;
+        particleBestCosts[idx] = 0.0;
+    }
+
+    if (idx == 0)
+    {
+        // Set the global best position to 0
+        *gBestPosition = 25.0;
     }
 }
 
@@ -69,8 +76,8 @@ namespace Wrapper
         int *particlePositions[][vecSpace],
         double *particleVelocities[][vecSpace],
         int *pBestPositions[][vecSpace],
-        double particleCosts[],
-        double pBestCosts[],
+        double *particleCosts[],
+        double *pBestCosts[],
         int *gBestPosition,
         double gBestCost,
         size_t maxIter,
@@ -80,12 +87,12 @@ namespace Wrapper
         double inertiaDrop)
     {
         // Print particle positions
-        for (size_t i = 0; i < vecSpace; ++i)
+        for (size_t i = 0; i < 1; ++i)
         {
             for (size_t j = 0; j < 10; ++j)
             {
                 //printf("%d ", *(particlePositions[i][j]));
-                printf("%f ", (particleCosts[j]));
+                printf("%f ", *(pBestCosts[j]));
             }
             printf("\n");
         }
@@ -109,27 +116,36 @@ namespace Wrapper
         double *d_particleVelocities;
         int *d_pBestPositions;
         double *d_particleCosts;
+        double *d_pBestCosts;
+        int *d_gBestPosition;
         cudaMalloc(&d_particlePositions, vecSpace * 10 * sizeof(int));
         cudaMalloc(&d_particleVelocities, vecSpace * 10 * sizeof(double));
         cudaMalloc(&d_pBestPositions, vecSpace * 10 * sizeof(int));
         cudaMalloc(&d_particleCosts, 10 * sizeof(double));
+        cudaMalloc(&d_pBestCosts, 10 * sizeof(double));
+        cudaMalloc(&d_gBestPosition, sizeof(int));
+  
 
         // Step 3: Copy the 1D array from host to device
         cudaMemcpy(d_particlePositions, flatParticlePositions, vecSpace * 10 * sizeof(int), cudaMemcpyHostToDevice);
         cudaMemcpy(d_particleVelocities, flatParticleVelocities, vecSpace * 10 * sizeof(double), cudaMemcpyHostToDevice);
         cudaMemcpy(d_pBestPositions, flatPBestPositions, vecSpace * 10 * sizeof(int), cudaMemcpyHostToDevice);
         cudaMemcpy(d_particleCosts, particleCosts, 10 * sizeof(double), cudaMemcpyHostToDevice);
+        cudaMemcpy(d_pBestCosts, pBestCosts, 10 * sizeof(double), cudaMemcpyHostToDevice);
+        cudaMemcpy(d_gBestPosition, gBestPosition, sizeof(int), cudaMemcpyHostToDevice);
 
         // Step 4: Launch the kernel to process the 1D array
         int blockSize = 256;
         int numBlocks = (vecSpace * 10 + blockSize - 1) / blockSize;
-        testKernel<<<numBlocks, blockSize>>>(d_particlePositions, d_particleVelocities, d_pBestPositions, d_particleCosts);
+        testKernel<<<numBlocks, blockSize>>>(d_particlePositions, d_particleVelocities, d_pBestPositions, d_particleCosts, d_pBestCosts, d_gBestPosition, gBestCost, maxIter, inertia, c1, c2, inertiaDrop);
 
         // Step 5: Copy the processed 1D array from device to host
         cudaMemcpy(flatParticlePositions, d_particlePositions, vecSpace * 10 * sizeof(int), cudaMemcpyDeviceToHost);
         cudaMemcpy(flatParticleVelocities, d_particleVelocities, vecSpace * 10 * sizeof(double), cudaMemcpyDeviceToHost);
         cudaMemcpy(flatPBestPositions, d_pBestPositions, vecSpace * 10 * sizeof(int), cudaMemcpyDeviceToHost);
         cudaMemcpy(particleCosts, d_particleCosts, 10 * sizeof(double), cudaMemcpyDeviceToHost);
+        cudaMemcpy(pBestCosts, d_pBestCosts, 10 * sizeof(double), cudaMemcpyDeviceToHost);
+        cudaMemcpy(gBestPosition, d_gBestPosition, sizeof(int), cudaMemcpyDeviceToHost);
 
         // Step 6: Reshape the 1D array back into a 2D matrix
         for (int i = 0; i < vecSpace; ++i)
@@ -150,17 +166,21 @@ namespace Wrapper
         cudaFree(d_particleVelocities);
         cudaFree(d_pBestPositions);
         cudaFree(d_particleCosts);
+        cudaFree(d_pBestCosts);
+        cudaFree(d_gBestPosition);
 
         // Print the updated particle positions
-        for (size_t i = 0; i < 2; ++i)
+        for (size_t i = 0; i < 1; ++i)
         {
             for (size_t j = 0; j < 10; ++j)
             {
-                printf("%d ", *(particlePositions[i][j]));
-                printf("%f ", (particleCosts[j]));
+                //printf("%d ", *(particlePositions[i][j]));
+                printf("%f ", *(pBestCosts[j]));
             }
             printf("\n");
         }
+
+        //printf("%d\n", gBestPosition);
 
     }
 }

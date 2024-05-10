@@ -85,9 +85,9 @@ namespace optimization
 
         int *particlePositions[swarmSize][vecSpace];
         double *particleVelocities[swarmSize][vecSpace];
-        double particleCosts[swarmSize];
+        double *particleCosts[swarmSize];
         int *pBestPositions[swarmSize][vecSpace];
-        double pBestCosts[swarmSize];
+        double *pBestCosts[swarmSize];
 
         // Deconstruct Particle struct members
         for (size_t i = 0; i < swarmSize; ++i)
@@ -98,8 +98,8 @@ namespace optimization
                 particleVelocities[i][j] = &swarm[i].velocity[j];
                 pBestPositions[i][j] = &swarm[i].pBest.position[j];
             }
-            particleCosts[i] = swarm[i].cost;
-            pBestCosts[i] = swarm[i].pBest.cost;
+            particleCosts[i] = &swarm[i].cost;
+            pBestCosts[i] = &swarm[i].pBest.cost;
         }
 
         // Deconstruct globalBest struct

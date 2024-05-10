@@ -12,16 +12,16 @@ Use CUDA functions to calculate block size
 #include <cuda_runtime.h>
 #include <curand_kernel.h>
 
-const unsigned int ARR_LEN = 2;
-const unsigned int N = 5000; 
-const unsigned int ITERATIONS = 500; 
+const unsigned int ARR_LEN = 1;
+const unsigned int N = 500; 
+const unsigned int ITERATIONS = 25; 
 const float w = 0.9f; 
 const float c_ind = 1.0f; 
 const float c_team = 2.0f; 
 
 
 // Position struct contains x and y coordinates 
-struct Array_values {
+struct Sol_arr {
     int array[ARR_LEN];
 
     std::string toString() {
@@ -36,7 +36,7 @@ struct Array_values {
         return str; 
     }
 
-    __device__ __host__ void operator+=(const Array_values& a) {
+    __device__ __host__ void operator+=(const Sol_arr& a) {
         for (size_t i = 0; i < ARR_LEN; i++)
         {
             array[i] += a.array[i];
@@ -44,7 +44,7 @@ struct Array_values {
         
     }
 
-    __device__ __host__ void operator=(const Array_values& a) {
+    __device__ __host__ void operator=(const Sol_arr& a) {
         for (size_t i = 0; i < ARR_LEN; i++)
         {
             array[i] = a.array[i];
@@ -54,19 +54,19 @@ struct Array_values {
 
 // Particle struct has current location, best location and velocity 
 struct Particle {
-    Array_values best_position; 
-    Array_values current_position; 
-    Array_values velocity; 
+    Sol_arr best_position; 
+    Sol_arr current_position; 
+    Sol_arr velocity; 
     float best_value; 
 };
 
 int randomInt() {
-    int number = std::rand() % 1001; // rand() % (max - min + 1) + min
+    int number = std::rand() % 10001; // rand() % (max - min + 1) + min
     return number; 
 }
 
 // function to optimize 
-__device__ __host__ int calcValue(Array_values p) {
+__device__ __host__ int calcValue(Sol_arr p) {
     int sum = 0;
     for (int i = 0; i < ARR_LEN; i++) {
         sum += p.array[i] * p.array[i]; 
