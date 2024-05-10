@@ -55,7 +55,7 @@ void updatePosition(Particle &p);
 const unsigned int N = 5000; 
 const unsigned int ITERATIONS = 1000; 
 const int SEARCH_MIN = 0; 
-const int SEARCH_MAX = 25; 
+const int SEARCH_MAX = 20; 
 const float w = 0.9f; 
 const float c_ind = 1.0f; 
 const float c_team = 2.0f; 
@@ -81,9 +81,7 @@ int calcValue(Sol_arr p, int* prices, int* device_1, int* device_2) {
         price += (prices[offset_device_1 + i] * device_1[i]);
         price += (prices[offset_device_2 + i] * device_2[i]);
     }
-
-
-
+    
     return price;
 }
 
@@ -140,6 +138,7 @@ int main(void) {
 
     int device_1[5] = {1, 1, 2, 3, 4};
     int device_2[5] = {100, 1, 200, 3, 1};
+    
 
     for (int i = 0; i < N; i++) {
         for (int j = 0; j < ARR_LEN; j++) {
