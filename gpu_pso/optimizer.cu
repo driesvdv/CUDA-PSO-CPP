@@ -61,8 +61,8 @@ struct Particle
     int best_value;
 };
 
-const unsigned int N = 5000;
-const unsigned int ITERATIONS = 1000;
+const unsigned int N = 1024;
+const unsigned int ITERATIONS = 1;
 const int SEARCH_MIN = 0;
 const int SEARCH_MAX = 25;
 const float w = 0.9f;
@@ -106,28 +106,51 @@ __global__ void init_kernel(curandState *state, long seed)
     curand_init(seed, idx, 0, state);
 }
 
-// Returns the index of the particle with the best position
 __global__ void updateTeamBestIndex(Particle *d_particles, int *d_team_best_value, int *d_team_best_index, int N)
 {
     __shared__ int best_value;
     __shared__ int best_index;
-    best_value = d_particles[0].best_value;
-    best_index = 0;
+
+    // Each block has its own copy of best value and index
+    if (threadIdx.x == 0)
+    {
+        best_value = d_particles[0].best_value;
+        best_index = 0;
+    }
+
     __syncthreads();
 
-    int idx = threadIdx.x + blockIdx.x * blockDim.x;
-    if (idx < N)
+    // Reduction loop
+    for (int stride = blockDim.x / 2; stride > 0; stride >>= 1)
     {
-        if (d_particles[idx].best_value < best_value)
+        int idx = threadIdx.x + blockIdx.x * blockDim.x;
+
+        if (idx < N)
         {
-            best_value = d_particles[idx].best_value;
-            best_index = idx;
-            __syncthreads();
+            int other_idx = idx + stride;
+            if (other_idx < N)
+            {
+                int min_value = min(d_particles[idx].best_value, d_particles[other_idx].best_value);
+                int min_index = (d_particles[idx].best_value < d_particles[other_idx].best_value) ? idx : other_idx;
+                
+                atomicMin(&best_value, min_value);
+                if (min_value == best_value)
+                    atomicExch(&best_index, min_index);
+            }
         }
+
+        __syncthreads();
     }
-    *d_team_best_value = best_value;
-    *d_team_best_index = best_index;
+
+    // Write back team's best value and index
+    if (threadIdx.x == 0)
+    {
+        d_team_best_value[blockIdx.x] = best_value;
+        d_team_best_index[blockIdx.x] = best_index;
+    }
 }
+
+
 
 // Update velocity for all particles
 __global__ void updateVelocity(Particle *d_particles, int *d_team_best_index, float w, float c_ind, float c_team, int N, curandState *state)
@@ -235,7 +258,7 @@ int main(void)
     updateTeamBestIndex<<<1, 1>>>(d_particles, d_team_best_value, d_team_best_index, N);
 
     // assign thread and blockcount
-    int blockSize = 32;
+    int blockSize = 512;
     int gridSize = (N + blockSize - 1) / blockSize;
 
     // For i in interations
